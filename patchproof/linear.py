@@ -78,10 +78,15 @@ class Certificate:
     forms: list[LinearForm]
     multipliers: list[int]
     combined: LinearForm = field(default_factory=LinearForm)
+    # What this certificate purports to prove: {"defect_class": ..., "widths": {...}}.
+    # Without it a verifier can confirm the arithmetic but not that the constraints
+    # are the ones belonging to any patch -- see `claims.replay_bound`.
+    claim: dict | None = None
 
     def to_dict(self) -> dict:
         return {
             "kind": "farkas-elimination",
+            "claim": self.claim,
             "constraints": [
                 {"label": f.label, "form": f.render(), "multiplier": m}
                 for f, m in zip(self.forms, self.multipliers, strict=True)
@@ -157,13 +162,17 @@ def replay(certificate_dict: dict) -> tuple[bool, str]:
         entries = certificate_dict["constraints"]
     except (KeyError, TypeError):
         return False, "malformed certificate: no 'constraints'"
+    if not isinstance(entries, list) or not entries:
+        return False, "malformed certificate: 'constraints' must be a non-empty list"
     forms, mults = [], []
-    for e in entries:
+    for i, e in enumerate(entries):
+        if not isinstance(e, dict):
+            return False, f"malformed constraint entry {i}: expected an object"
         try:
             forms.append(_parse_form(e["form"], e.get("label", "")))
-            mults.append(int(e["multiplier"]))
-        except (KeyError, ValueError) as exc:
-            return False, f"malformed constraint entry: {exc}"
+            mults.append(_parse_multiplier(e["multiplier"]))
+        except (KeyError, ValueError, TypeError) as exc:
+            return False, f"malformed constraint entry {i}: {exc}"
     try:
         combined = verify(forms, mults)
     except ReplayError as exc:
@@ -171,19 +180,84 @@ def replay(certificate_dict: dict) -> tuple[bool, str]:
     return True, f"replayed: combination is {combined.render()}, a contradiction"
 
 
+def _parse_multiplier(value: object) -> int:
+    """A Farkas multiplier, or a refusal.
+
+    `int(1.5)` silently truncates to 1, which changes the certificate being checked
+    into a different one that happens to verify.  A multiplier that is not already
+    an integer is rejected rather than rounded.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"multiplier must be an integer, got boolean {value!r}")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        raise ValueError(
+            f"multiplier must be an integer, got float {value!r} "
+            f"(truncating it would silently check a different certificate)"
+        )
+    if isinstance(value, str):
+        raise ValueError(f"multiplier must be an integer, got string {value!r}")
+    raise ValueError(f"multiplier must be an integer, got {type(value).__name__}")
+
+
+# One signed term: optional sign, optional integer coefficient, then a variable or
+# an integer.  Anchored and consumed end-to-end by `_parse_form` -- a scan that
+# merely *finds* terms silently ignores whatever it cannot match, which is how
+# `@@@ <= 0` used to parse as the perfectly valid form `0 <= 0`.
+_TERM = re.compile(r"\s*([+-])?\s*(?:(\d+)\s*\*\s*)?([A-Za-z_]\w*|\d+)\s*")
+
+
 def _parse_form(text: str, label: str = "") -> LinearForm:
-    """Parse `a - 2*b + 3 <= 0` back into a LinearForm."""
-    body = text.split("<=", 1)[0].strip()
+    """Parse `a - 2*b + 3 <= 0` back into a LinearForm.
+
+    Strict by construction.  Every character must be consumed by a term; anything
+    left over raises.  This function is the trust boundary of the whole package --
+    it reads a certificate supplied by whoever wants a claim believed -- so
+    unparseable text must never be coerced into a well-formed form.
+    """
+    if not isinstance(text, str):
+        raise ValueError(f"form must be a string, got {type(text).__name__}")
+    if text.count("<=") != 1:
+        raise ValueError(
+            f"unparseable form {text!r}: expected exactly one '<=' relation"
+        )
+    body, rhs = text.split("<=", 1)
+    if rhs.strip() != "0":
+        raise ValueError(
+            f"unparseable form {text!r}: right-hand side must be exactly 0, got {rhs.strip()!r}"
+        )
+    body = body.strip()
     if not body:
-        raise ValueError(f"unparseable form {text!r}")
+        raise ValueError(f"unparseable form {text!r}: empty left-hand side")
+
     coeffs: dict[str, int] = {}
     const = 0
-    for m in re.finditer(r"([+-]?)\s*(?:(\d+)\s*\*\s*)?([A-Za-z_]\w*|\d+)", body):
-        sign = -1 if m.group(1) == "-" else 1
-        mag = int(m.group(2)) if m.group(2) else 1
-        tok = m.group(3)
+    pos = 0
+    first = True
+    while pos < len(body):
+        m = _TERM.match(body, pos)
+        if not m or m.end() == pos:
+            raise ValueError(
+                f"unparseable form {text!r}: cannot read a term at offset {pos} "
+                f"({body[pos:pos + 12]!r})"
+            )
+        sign_tok, mag_tok, tok = m.group(1), m.group(2), m.group(3)
+        # Only the leading term may omit its sign; `x y` and `x ++ y` are errors.
+        if sign_tok is None and not first:
+            raise ValueError(
+                f"unparseable form {text!r}: missing '+' or '-' before {tok!r}"
+            )
+        sign = -1 if sign_tok == "-" else 1
+        mag = int(mag_tok) if mag_tok else 1
         if tok.isdigit():
+            if mag_tok:
+                raise ValueError(
+                    f"unparseable form {text!r}: {mag_tok}*{tok} is not a linear term"
+                )
             const += sign * int(tok)
         else:
             coeffs[tok] = coeffs.get(tok, 0) + sign * mag
+        pos = m.end()
+        first = False
     return LinearForm.of(coeffs, const, label)

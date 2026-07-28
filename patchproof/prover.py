@@ -220,6 +220,14 @@ def prove(dc: DefectClass | str) -> Result:
         r.legs_agree = None
     else:
         r.certificate = find_certificate(forms)
+        if r.certificate is not None:
+            # Bind the certificate to what it proves, so a third party can check the
+            # constraints are this class's rather than merely self-consistent.
+            r.certificate.claim = {
+                "defect_class": dc.key,
+                "widths": {f.name: f.width for f in dc.fields},
+                "proves": "every violating input is eliminated by the corrected guard",
+            }
         elim_says_complete = r.certificate is not None
         r.legs_agree = elim_says_complete == r.complete
         if not r.legs_agree:

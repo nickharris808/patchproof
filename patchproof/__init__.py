@@ -7,6 +7,7 @@ needs z3, and is therefore imported lazily — `import patchproof.linear` must n
 drag a solver in, and a test enforces that.
 """
 
+from .claims import REJECTED, UNVERIFIED, VERIFIED, replay_bound
 from .linear import Certificate, LinearForm, ReplayError, find_certificate, replay, verify
 
 __version__ = "0.1.0"
@@ -37,6 +38,9 @@ __all__ = [
     "CLASSES",
     "OUT_OF_MODEL",
     "REAL_CLASSES",
+    "REJECTED",
+    "UNVERIFIED",
+    "VERIFIED",
     "Certificate",
     "DefectClass",
     "Field",
@@ -49,5 +53,6 @@ __all__ = [
     "find_exploit",
     "prove",
     "replay",
+    "replay_bound",
     "verify",
 ]

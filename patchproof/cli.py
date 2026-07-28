@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from .linear import replay
+from .claims import VERIFIED, replay_bound
 from .model import CLASSES, OUT_OF_MODEL, REAL_CLASSES
 from .prover import prove
 
@@ -84,10 +84,17 @@ def _cmd_cert(args) -> int:
 
 
 def _cmd_replay(args) -> int:
-    cert = json.loads(Path(args.certificate).read_text())
-    ok, msg = replay(cert)
-    print(("VERIFIED   " if ok else "REJECTED   ") + msg)
-    return 0 if ok else 1
+    try:
+        cert = json.loads(Path(args.certificate).read_text())
+    except json.JSONDecodeError as exc:
+        print(f"REJECTED   certificate is not valid JSON: {exc}", file=sys.stderr)
+        return 1
+    status, msg = replay_bound(cert)
+    stream = sys.stdout if status == VERIFIED else sys.stderr
+    print(f"{status:<10} {msg}", file=stream)
+    # Only a certificate bound to its claim exits 0; UNVERIFIED is not a pass, so a
+    # CI job gating on this cannot be satisfied by an unbound certificate.
+    return 0 if status == VERIFIED else 1
 
 
 def _cmd_classes(args) -> int:

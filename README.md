@@ -94,21 +94,49 @@ re-check yourself:
 
 ```console
 $ patchproof replay a.json
-VERIFIED   replayed: combination is 1 <= 0, a contradiction
+VERIFIED   replayed: combination is 1 <= 0, a contradiction; constraints match the
+           canonical corrected-AND-NOT-safety forms of class A
 
 $ # flip one multiplier and try again
 $ patchproof replay tampered.json
 REJECTED   variables did not cancel: index(-1), size(1)
 ```
 
-`patchproof.linear` — the module that does this — **never imports z3**, directly or
-transitively. Replaying a certificate is multiply, add, check the variables cancel, check
-the constant is positive. A test enforces the property by importing the module in a fresh
+### Why the arithmetic alone is not enough
+
+There are two questions here, and only one of them is arithmetic:
+
+1. *Do these inequalities, with these multipliers, combine to a contradiction?*
+2. *Are these the inequalities of the patch being claimed?*
+
+A certificate consisting of the single form `5 <= 0` answers (1) perfectly — `5 <= 0` is
+false, so any system containing it is trivially infeasible — while saying nothing whatever
+about anybody's patch. Checking (1) and reporting `VERIFIED` would be certifying a claim
+nobody established.
+
+So an emitted certificate carries a `claim` block naming its defect class and field
+widths, and `replay` checks the constraints against a canonical statement of that class
+held by the verifier — not supplied with the proof. Three outcomes:
+
+| Status | Meaning |
+|---|---|
+| `VERIFIED` | arithmetic replays **and** the constraints are that class's. Exit 0. |
+| `UNVERIFIED` | arithmetic replays, but no claim is bound — nothing to check it against. **Not a pass.** Exit 1. |
+| `REJECTED` | the arithmetic fails, or the constraints are not the claimed class's. Exit 1. |
+
+A class A certificate relabelled as class C is `REJECTED`, not verified.
+
+`patchproof.linear` and `patchproof.claims` — the modules that do this — **never import
+z3**, directly or transitively. Replaying a certificate is multiply, add, check the
+variables cancel, check the constant is positive, and check the constraints are the ones
+the claim names. The form parser is strict: it must consume the whole string, so `@@@ <= 0`
+is rejected rather than read as the well-formed `0 <= 0`, and a non-integer multiplier is
+refused rather than silently truncated into a different certificate. A test enforces the property by importing the module in a fresh
 interpreter and asserting a solver never reaches `sys.modules`.
 
 ```python
-from patchproof.linear import replay   # no solver required
-ok, why = replay(json.load(open("a.json")))
+from patchproof.claims import replay_bound   # no solver required
+status, why = replay_bound(json.load(open("a.json")))   # VERIFIED / UNVERIFIED / REJECTED
 ```
 
 ## The three modelled classes
