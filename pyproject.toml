@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "patchproof"
+version = "0.1.0"
+description = "Prove a bounds-check fix eliminates every violating input, not just the one you saw."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["security", "formal-methods", "smt", "bounds-check", "patch", "farkas", "cwe"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+  "Programming Language :: Python :: 3",
+]
+dependencies = ["z3-solver>=4.12"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "ruff>=0.14,<0.15"]
+
+[project.scripts]
+patchproof = "patchproof.cli:main"
+
+[tool.setuptools]
+packages = ["patchproof"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["build", "dist"]
+
+[tool.ruff.lint]
+# Pinned explicitly so `ruff check .` gives contributors the same result we get,
+# rather than whatever the installed ruff version happens to default to.
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "PERF", "ISC", "PL"]
+# PLC0415: local imports are deliberate (lazy solver import, per-test isolation).
+# PERF203: the try/except in the certificate search is the search, not overhead.
+# PLR0913: keyword-only builder functions legitimately take many fields.
+ignore = ["PLR2004", "PLR0912", "PLR0915", "PLR0913", "E501", "PLC0415", "PERF203"]
