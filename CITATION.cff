@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: "patchproof: prove a bounds-check fix eliminates every violating input"
+message: "If you use this in academic work, please cite it."
+type: software
+authors:
+  - alias: nickharris808
+    website: "https://github.com/nickharris808"
+repository-code: "https://github.com/nickharris808/patchproof"
+url: "https://huggingface.co/spaces/nickh007/hw-verify"
+abstract: >-
+  Decides whether a corrected guard admits any input violating a safety relation, at declared machine widths. Discharged twice -- bit-precise with fixed-size bit-vectors, and as a Farkas elimination certificate a third party replays with integer arithmetic and no solver. A certificate is bound to the defect class it claims, so arithmetic that contradicts itself but proves nothing about a patch is reported UNVERIFIED rather than as a pass.
+keywords:
+  - bounds check
+  - farkas lemma
+  - certificate
+  - formal verification
+  - security
+license: Apache-2.0
+version: "0.1.0"
+date-released: "2026-07-28"
