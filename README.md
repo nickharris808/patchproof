@@ -188,6 +188,13 @@ violating input exists — or that your fix eliminates all of them — *without 
 input or the code*, that is a zero-knowledge problem and it is not what this package does.
 That capability is commercial. Everything here runs on code you already control.
 
+## Documentation
+
+| | |
+|---|---|
+| [SCOPE.md](SCOPE.md) | what `COMPLETE` proves, and what a certificate is *not* |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | every verdict and error, and how to act on it |
+
 <!-- portfolio:start -->
 ## Part of the hw-verify toolkit
 
