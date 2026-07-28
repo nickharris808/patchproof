@@ -1,0 +1,503 @@
+{
+  "note": "Shared test vectors. Both the Python (patchproof.claims.replay_bound) and Rust (patchproof_verify::replay_bound) verifiers must return the 'expected' status for every case. A disagreement means one is wrong.",
+  "cases": [
+    {
+      "name": "genuine class A",
+      "certificate": {
+        "kind": "farkas-elimination",
+        "claim": {
+          "defect_class": "A",
+          "widths": {
+            "index": 16,
+            "size": 16
+          },
+          "proves": "every violating input is eliminated by the corrected guard"
+        },
+        "constraints": [
+          {
+            "label": "corrected: index < size",
+            "form": "index - size + 1 <= 0",
+            "multiplier": 1
+          },
+          {
+            "label": "not safety: index >= size",
+            "form": "- index + size <= 0",
+            "multiplier": 1
+          }
+        ],
+        "combination": "1 <= 0",
+        "contradiction": "the combination has no variable terms and asserts 1 <= 0, which is false"
+      },
+      "expected": "VERIFIED"
+    },
+    {
+      "name": "genuine class B",
+      "certificate": {
+        "kind": "farkas-elimination",
+        "claim": {
+          "defect_class": "B",
+          "widths": {
+            "payload": 16,
+            "record": 17
+          },
+          "proves": "every violating input is eliminated by the corrected guard"
+        },
+        "constraints": [
+          {
+            "label": "corrected: payload + 8 <= record",
+            "form": "payload - record + 8 <= 0",
+            "multiplier": 1
+          },
+          {
+            "label": "not safety: payload + 8 > record",
+            "form": "- payload + record - 7 <= 0",
+            "multiplier": 1
+          }
+        ],
+        "combination": "1 <= 0",
+        "contradiction": "the combination has no variable terms and asserts 1 <= 0, which is false"
+      },
+      "expected": "VERIFIED"
+    },
+    {
+      "name": "genuine class C",
+      "certificate": {
+        "kind": "farkas-elimination",
+        "claim": {
+          "defect_class": "C",
+          "widths": {
+            "sel": 5,
+            "base": 5
+          },
+          "proves": "every violating input is eliminated by the corrected guard"
+        },
+        "constraints": [
+          {
+            "label": "corrected: sel < 20",
+            "form": "sel - 19 <= 0",
+            "multiplier": 1
+          },
+          {
+            "label": "not safety: sel >= 20",
+            "form": "- sel + 20 <= 0",
+            "multiplier": 1
+          }
+        ],
+        "combination": "1 <= 0",
+        "contradiction": "the combination has no variable terms and asserts 1 <= 0, which is false"
+      },
+      "expected": "VERIFIED"
+    },
+    {
+      "name": "class A arithmetic, unbound",
+      "certificate": {
+        "kind": "farkas-elimination",
+        "constraints": [
+          {
+            "label": "corrected: index < size",
+            "form": "index - size + 1 <= 0",
+            "multiplier": 1
+          },
+          {
+            "label": "not safety: index >= size",
+            "form": "- index + size <= 0",
+            "multiplier": 1
+          }
+        ],
+        "combination": "1 <= 0",
+        "contradiction": "the combination has no variable terms and asserts 1 <= 0, which is false"
+      },
+      "expected": "UNVERIFIED"
+    },
+    {
+      "name": "class A relabelled as B",
+      "certificate": {
+        "kind": "farkas-elimination",
+        "claim": {
+          "defect_class": "B"
+        },
+        "constraints": [
+          {
+            "label": "corrected: index < size",
+            "form": "index - size + 1 <= 0",
+            "multiplier": 1
+          },
+          {
+            "label": "not safety: index >= size",
+            "form": "- index + size <= 0",
+            "multiplier": 1
+          }
+        ],
+        "combination": "1 <= 0",
+        "contradiction": "the combination has no variable terms and asserts 1 <= 0, which is false"
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "class A relabelled as C",
+      "certificate": {
+        "kind": "farkas-elimination",
+        "claim": {
+          "defect_class": "C"
+        },
+        "constraints": [
+          {
+            "label": "corrected: index < size",
+            "form": "index - size + 1 <= 0",
+            "multiplier": 1
+          },
+          {
+            "label": "not safety: index >= size",
+            "form": "- index + size <= 0",
+            "multiplier": 1
+          }
+        ],
+        "combination": "1 <= 0",
+        "contradiction": "the combination has no variable terms and asserts 1 <= 0, which is false"
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "class A relabelled as Z-nonexistent",
+      "certificate": {
+        "kind": "farkas-elimination",
+        "claim": {
+          "defect_class": "Z-nonexistent"
+        },
+        "constraints": [
+          {
+            "label": "corrected: index < size",
+            "form": "index - size + 1 <= 0",
+            "multiplier": 1
+          },
+          {
+            "label": "not safety: index >= size",
+            "form": "- index + size <= 0",
+            "multiplier": 1
+          }
+        ],
+        "combination": "1 <= 0",
+        "contradiction": "the combination has no variable terms and asserts 1 <= 0, which is false"
+      },
+      "expected": "UNVERIFIED"
+    },
+    {
+      "name": "garbage form plus false constant",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "@@@ <= 0",
+            "multiplier": 1
+          },
+          {
+            "form": "5 <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form '1e9 <= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "1e9 <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form 'x ++ y <= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x ++ y <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form 'x <= 0 <= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x <= 0 <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form 'x & y <= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x & y <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form 'x <= 1'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x <= 1",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form 'x >= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x >= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form '<= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "<= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form ''",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form 'x y <= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x y <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "unparseable form '2 * 3 <= 0'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "2 * 3 <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "multiplier 1.5",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": 1.5
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "multiplier -1",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": -1
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "multiplier 0",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": 0
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "multiplier '1'",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": "1"
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "multiplier None",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": null
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "multiplier True",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": true
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "variables do not cancel",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": 2
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "no contradiction",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x <= 0",
+            "multiplier": 1
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "trivially false constant alone",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "5 <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "UNVERIFIED"
+    },
+    {
+      "name": "empty constraints",
+      "certificate": {
+        "constraints": []
+      },
+      "expected": "REJECTED"
+    },
+    {
+      "name": "huge multipliers",
+      "certificate": {
+        "constraints": [
+          {
+            "form": "x + 1 <= 0",
+            "multiplier": 1000000000
+          },
+          {
+            "form": "- x <= 0",
+            "multiplier": 1000000000
+          }
+        ]
+      },
+      "expected": "UNVERIFIED"
+    },
+    {
+      "name": "valid arithmetic bound to a real class, reordered",
+      "certificate": {
+        "claim": {
+          "defect_class": "A"
+        },
+        "constraints": [
+          {
+            "form": "- index + size <= 0",
+            "multiplier": 1
+          },
+          {
+            "form": "index - size + 1 <= 0",
+            "multiplier": 1
+          }
+        ]
+      },
+      "expected": "VERIFIED"
+    }
+  ]
+}

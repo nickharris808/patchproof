@@ -234,3 +234,43 @@ def test_replay_round_trips_through_json():
 
     d = json.loads(json.dumps(prove("B").certificate.to_dict()))
     assert replay_bound(d)[0] == VERIFIED
+
+
+# ---------------------------------------------------------------------------
+# Shared vectors, also consumed by the Rust verifier.
+#
+# A second implementation is only worth having if both are checked against the same
+# inputs. `tests/vectors.json` is that shared corpus; the Rust crate reads the very
+# same file. If these two ever disagree, one of them is wrong and nobody would know
+# which — so the disagreement fails both builds.
+# ---------------------------------------------------------------------------
+
+def test_every_shared_vector_still_gets_its_recorded_status():
+    import json as _json
+    from pathlib import Path as _Path
+
+    p = _Path(__file__).parent / "vectors.json"
+    if not p.is_file():
+        pytest.skip("vectors.json not generated")
+    data = _json.loads(p.read_text())
+    assert data["cases"], "the vector file is empty"
+
+    wrong = []
+    for case in data["cases"]:
+        status, _msg = replay_bound(case["certificate"])
+        if status != case["expected"]:
+            wrong.append(f"{case['name']}: recorded {case['expected']}, got {status}")
+    assert not wrong, "vectors drifted from the implementation:\n  " + "\n  ".join(wrong)
+
+
+def test_no_shared_vector_is_verified_without_a_claim():
+    """Cheap invariant over the corpus: VERIFIED requires a bound claim."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    p = _Path(__file__).parent / "vectors.json"
+    if not p.is_file():
+        pytest.skip("vectors.json not generated")
+    for case in _json.loads(p.read_text())["cases"]:
+        if case["expected"] == VERIFIED:
+            assert case["certificate"].get("claim", {}).get("defect_class"), case["name"]
