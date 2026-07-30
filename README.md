@@ -37,7 +37,15 @@ git clone https://github.com/nickharris808/patchproof.git && cd patchproof
 pip install .
 ```
 
-Once published, this becomes `pip install patchproof`.
+Once published, this becomes `pip install patchproof` — the PyPI name is unclaimed as of
+2026-07-30.
+
+> ⚠️ **Do not `npm install patchproof`.** That npm name belongs to **an unrelated third
+> party** (maintainer `axrx657`, `github.com/AsserAl1012/patchproof`) whose package
+> description — *"AI-style bug repair with bounded behavioral evidence certificates"* — is
+> close enough to this project's that reaching for it by analogy is an easy mistake. It is
+> not ours, we have no relationship with it, and we cannot vouch for what it does. This
+> project ships **no npm package at all**; Python and Rust only.
 
 ## 30-second quickstart
 
